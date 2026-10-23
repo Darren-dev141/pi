@@ -96,6 +96,11 @@ function validateDefinition(definition: AnyDocDefinition): void {
 	if (!Number.isSafeInteger(definition.version) || definition.version < 1) {
 		throw new TypeError(`Document ${definition.kind} version must be a positive integer`);
 	}
+	if (typeof definition.checkpointWhen !== "function") {
+		throw new TypeError(
+			`Document ${definition.kind} requires a checkpointWhen predicate; there is no default. Use () => false to keep ordinary changes as deltas`,
+		);
+	}
 }
 
 /** Logical address plus its string identity for maps. */
