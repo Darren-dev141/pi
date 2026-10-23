@@ -107,6 +107,34 @@ describe("document definitions", () => {
 		expect(SessionDoc.definition.kind).toBe("t.session");
 	});
 
+	it("rejects a missing checkpoint predicate at runtime", () => {
+		// The checks above cover TypeScript callers. A plain-JavaScript caller
+		// gets no type error, so the definition itself must be rejected here:
+		// without a predicate, the first ordinary change commit fails with
+		// "change.definition.checkpointWhen is not a function".
+		const doc = { kind: "t.missing-checkpoint", version: 1, scope: "session", initial } as const;
+		const family = {
+			kind: "t.missing-family-checkpoint",
+			version: 1,
+			family: true,
+			scope: "session",
+			initial: (seed: number) => ({ value: seed }),
+		} as const;
+		// @ts-expect-error document definitions require checkpointWhen
+		expect(() => defineDoc<State>(doc)).toThrow("checkpointWhen");
+		// @ts-expect-error document family definitions require checkpointWhen
+		expect(() => defineDocFamily<State, number>(family)).toThrow("checkpointWhen");
+		const undefinedPredicate = {
+			kind: "t.undefined-checkpoint",
+			version: 1,
+			scope: "session",
+			initial,
+			checkpointWhen: undefined,
+		} as const;
+		// @ts-expect-error checkpointWhen must be a predicate
+		expect(() => defineDoc<State>(undefinedPredicate)).toThrow("checkpointWhen");
+	});
+
 	it("types every owner, key, and seed overload", async () => {
 		const session: Session = createSession(new MemoryStorage());
 		const check = async (tx: Tx, conversationId: ConversationId, taskId: TaskId): Promise<void> => {
@@ -200,3 +228,4 @@ describe("document definitions", () => {
 		expect(check).toBeTypeOf("function");
 	});
 });
+
